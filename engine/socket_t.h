@@ -7,8 +7,6 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-class xNetProcessor;
-
 inline void SAFE_CLOSE_SOCKET(int &fd, const char *name)
 {
 	XDBG("[Socket],%s,close %d", name, fd);
@@ -42,11 +40,11 @@ class socket_t
 		bool setSockOpt();
 		void setComp(bool flag) { compFlag = flag; }
 
-		bool getCmd(BYTE *&cmd, WORD &len);
+		bool getCmd(BYTE *&cmd, uint16_t &len);
 		bool popCmd();
 
 		//数据放进缓冲区，等待发送
-		bool sendCmd(const void *data, WORD len);
+		bool sendCmd(const void *data, uint16_t len);
 		//返回发送后缓冲区剩余字节数
 		int sendCmd();
 		bool sendFlashPolicy();
@@ -88,14 +86,14 @@ class socket_t
 		}
 
 	protected:
-		WORD sizeMod8(WORD len);//resize by 8 bytes, for encrypt
+		uint16_t sizeMod8(uint16_t len);//resize by 8 bytes, for encrypt
 
 		void compressAll();
-		WORD compress(void *data, QWORD len);
-		WORD uncompress(void *dest, QWORD destLen, void *src, QWORD srcLen);
+		uint16_t compress(void *data, uint64_t len);
+		uint16_t uncompress(void *dest, uint64_t destLen, void *src, uint64_t srcLen);
 
-		void encrypt(void *data, WORD len);
-		void decrypt(void *data, WORD len);
+		void encrypt(void *data, uint16_t len);
+		void decrypt(void *data, uint16_t len);
 		bool needEnc(){return encFlag;}
 		bool needDec(){return encFlag;}
 
@@ -108,7 +106,7 @@ class socket_t
 		{
 		  return _addr.sin_addr;
 		}
-		WORD getPort()
+		uint16_t getPort()
 		{
 		  return _addr.sin_port;
 		}

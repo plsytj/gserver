@@ -108,10 +108,6 @@ bool socket_t::setNonBlock()
 
 bool socket_t::setSockOpt()
 {
-	int nRecvBuf = MAX_BUFSIZE*2;
-	setsockopt(_fd,SOL_SOCKET,SO_RCVBUF,(const char*)&nRecvBuf,sizeof(int));
-	int nSendBuf = MAX_BUFSIZE*2;
-	setsockopt(_fd,SOL_SOCKET,SO_SNDBUF,(const char*)&nSendBuf,sizeof(int));
     return true;
 }
 
