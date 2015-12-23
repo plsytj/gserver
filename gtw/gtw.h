@@ -1,3 +1,5 @@
+#ifndef __GTW_INCLUDE__
+#define __GTW_INCLUDE__
 
 class gtw
 {
@@ -7,8 +9,9 @@ class gtw
     public:
         bool init(int port);
         void run();
-
         void stop();
     private:
 
 };
+
+#endif
