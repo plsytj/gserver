@@ -7,7 +7,25 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-inline void SAFE_CLOSE_SOCKET(int &fd, const char *name)
+// 包头标志
+enum PACKET_FLAG_ENUM_TYPE
+{
+  PACKET_FLAG_COMPRESS = 1,  // 压缩
+  PACKET_FLAG_ENCRYPT = 2,  // 加密
+};
+
+struct PacketHead
+{
+  BYTE flags;
+  WORD len;
+  PacketHead()
+  {
+    flags = len = 0;
+  }
+};
+
+
+inline void SAFE_CLOSE_SOCKET(int fd, const char *name)
 {
 	XDBG("[Socket],%s,close %d", name, fd);
 
@@ -25,15 +43,14 @@ inline void SAFE_CLOSE_SOCKET(int &fd, const char *name)
 class socket_t
 {
 	public:
-		socket_t(xNetProcessor *n);
+		socket_t(int fd, const socketaddr_in &addr);
 		~socket_t();
 
 		int get_fd() const {return _fd;}
 
 		bool valid(){return _fd!=-1;}
 		void shutdown(int how);
-		bool connect(const char *ip, INT port);
-		bool accept(int sockfd, const sockaddr_in &addr);
+		bool connect(const char *ip, int port);
 		void close();
 
 		bool setNonBlock();
@@ -52,39 +69,6 @@ class socket_t
 		bool readToBuf();
 		bool writeToBuf(void *data, uint32_t len);
 
-		inline void addEpoll(int ep)
-		{
-			_epfd = ep;
-			epoll_event ev;
-			bzero(&ev, sizeof(ev));
-			ev.data.fd = _fd;
-			ev.data.ptr = _np;
-			ev.events = EPOLLIN|EPOLLOUT|EPOLLET;
-			epoll_ctl(ep, EPOLL_CTL_ADD, _fd, &ev);
-		}
-
-		inline void addEpoll()
-		{
-			struct epoll_event ev;
-			bzero(&ev, sizeof(ev));
-			ev.data.fd = _fd;
-			ev.events = EPOLLIN|EPOLLOUT|EPOLLET;
-			ev.data.ptr = _np;
-			epoll_ctl(_epfd, EPOLL_CTL_MOD, _fd, &ev);
-		}
-
-		inline void delEpoll()
-		{
-            XDBG("[Socket],%u,del epoll epfd:%u", _fd, _epfd);
-			epoll_event ev;
-			bzero(&ev, sizeof(ev));
-			ev.data.fd = _fd;
-			ev.data.ptr = _np;
-			ev.events = EPOLLIN|EPOLLOUT|EPOLLET;
-			epoll_ctl(_epfd, EPOLL_CTL_DEL, _fd, &ev);
-			_epfd = 0;
-		}
-
 	protected:
 		uint16_t sizeMod8(uint16_t len);//resize by 8 bytes, for encrypt
 
@@ -99,7 +83,7 @@ class socket_t
 
 		int _fd;
 		sockaddr_in _addr;
-		INT _epfd;
+		int _epfd;
 
 	public:
 		in_addr& getIP()
@@ -133,5 +117,4 @@ class socket_t
 
 		xRWLock _send_critical;
 
-		xNetProcessor *_np;
 };

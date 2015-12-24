@@ -10,16 +10,15 @@ extern "C"
 #include <fcntl.h>
 #include "xServer.h"
 
-//压缩等级: 0 ~ 9, 数字越大，压缩率越高，耗时越长
 #define COMPRESS_LEVEL 6
 #define MIN_COMPRESS_SIZE 48
 
 BYTE fixedkey[8] = { 95,27,5,20,131,4,8,88 };
 
-socket_t::socket_t(xNetProcessor *n)
-:_np(n)
+socket_t::socket_t(int sockfd, const sockaddr_in &addr)
 {
-	_fd = 0;
+	_fd = sockfd;
+    _addr = addr;
 
 	_write_buffer.Resize(MAX_BUFSIZE*2);
 	_read_buffer.Resize(MAX_BUFSIZE*2);
@@ -34,7 +33,6 @@ socket_t::socket_t(xNetProcessor *n)
 	encFlag = false;
 	compFlag = false;
 
-	//setSockOpt();
 }
 
 socket_t::~socket_t()
@@ -111,7 +109,7 @@ bool socket_t::setSockOpt()
     return true;
 }
 
-WORD socket_t::sizeMod8(WORD len)
+uint16_t socket_t::sizeMod8(uint16_t len)
 {
 	return len;
 	return (len+7)/8*8;
@@ -209,27 +207,8 @@ int socket_t::sendCmd()
 	return final_ret;
 }
 
-bool socket_t::sendFlashPolicy()
-{
-	char policy[]="<?xml version=\"1.0\"?> <cross-domain-policy> <allow-access-from domain=\"*\" to-ports=\"*\" /> </cross-domain-policy>";
-	int ret = 0;
-	{
-//		ScopeWriteLock swl(_write_critical);
-		ret = ::send(_fd,(const char*)policy,sizeof(policy),0);
-	}
-	if(ret!=(int)sizeof(policy))
-	{
-		XERR("[SOCKET],fd:%d,send flashPolicy fail,errno:%u,%s,ret:%d",_fd,errno, strerror(errno),ret);
-		return false;
-	}
-	else
-	{
-		shutdown(SHUT_RDWR);
-		return true;
-	}
-}
 
-bool socket_t::sendCmd(const void *data, WORD len)
+bool socket_t::sendCmd(const void *data, uint16_t len)
 {
   if (!valid()) return false;
 
@@ -252,9 +231,9 @@ bool socket_t::writeToBuf(void *data, uint32_t len)
 	return (real_size==len);
 }
 
-WORD socket_t::compress(void *data, QWORD len)
+uint16_t socket_t::compress(void *data, Quint16_t len)
 {
-	QWORD newLen = tmpWriteBuffer.buffer_size();
+	Quint16_t newLen = tmpWriteBuffer.buffer_size();
 	if (Z_OK == ::compress2((Bytef *)tmpWriteBuffer.GetBufBegin(), (uLongf *)&newLen, (Bytef *)data, (uLong)len, COMPRESS_LEVEL))
 	{
 		memcpy(data, tmpWriteBuffer.GetBufBegin(), newLen);
@@ -264,9 +243,9 @@ WORD socket_t::compress(void *data, QWORD len)
 	return 0;
 }
 
-WORD socket_t::uncompress(void *dest, QWORD destLen, void *src, QWORD srcLen)
+uint16_t socket_t::uncompress(void *dest, Quint16_t destLen, void *src, Quint16_t srcLen)
 {
-	QWORD newLen = destLen;
+	Quint16_t newLen = destLen;
 	if (Z_OK == ::uncompress((Bytef *)dest, (uLongf *)&newLen, (Bytef *)src, (uLong)srcLen))
 	{
 		return newLen;
@@ -275,23 +254,23 @@ WORD socket_t::uncompress(void *dest, QWORD destLen, void *src, QWORD srcLen)
 	return 0;
 }
 
-void socket_t::encrypt(void *data, WORD len)
+void socket_t::encrypt(void *data, uint16_t len)
 {
 	deskey(fixedkey, EN0);
-	for (WORD i = 0; i < len; i += 8)
+	for (uint16_t i = 0; i < len; i += 8)
 		des((BYTE *)data + i, (BYTE *)tmpWriteBuffer.GetBufOffset(i));
 	memcpy(data, tmpWriteBuffer.GetBufBegin(), len);
 }
 
-void socket_t::decrypt(void *data, WORD len)
+void socket_t::decrypt(void *data, uint16_t len)
 {
 	deskey(fixedkey, DE1);
-	for (WORD i = 0; i < len; i += 8)
+	for (uint16_t i = 0; i < len; i += 8)
 		des((BYTE *)data + i, (BYTE *)tmpDecBuffer.GetBufOffset(i));
 	memcpy(data, tmpDecBuffer.GetBufBegin(), len);
 }
 
-bool socket_t::getCmd(BYTE *&cmd, WORD &len)
+bool socket_t::getCmd(BYTE *&cmd, uint16_t &len)
 {
 	//return cmdQueue.getCmd(cmd, len);
 
@@ -301,19 +280,8 @@ bool socket_t::getCmd(BYTE *&cmd, WORD &len)
 	uint32_t used = _read_buffer.buffer_offset();
 	if (used<MIN_PACKSIZE) return false;
 
-	//check flashPolicy
-	//<policy-file-request/>
-	if(*((BYTE*)_read_buffer.GetBufBegin())=='<')
-	{
-		if(_read_buffer.buffer_offset()>=22)
-		{
-			sendFlashPolicy();
-			_read_buffer.Pop(22);
-		}
-		return false;
-	}
 	Packet *p = (Packet *)_read_buffer.GetBufBegin();
-	WORD real_size = 0;
+	uint16_t real_size = 0;
 
 	if (needDec())
 	{
@@ -382,7 +350,7 @@ void socket_t::compressAll()
 		encBuffer.Put(_tmp_cmd_write_buffer.GetBufOffset(PH_LEN), oldPHead->len);
 		PacketHead *p = (PacketHead *)encBuffer.GetBufBegin();
 
-		WORD real_size = oldPHead->len;
+		uint16_t real_size = oldPHead->len;
 		if (compFlag && oldPHead->len >= MIN_COMPRESS_SIZE)
 		{
 			real_size = compress(encBuffer.GetBufOffset(PH_LEN), oldPHead->len);
