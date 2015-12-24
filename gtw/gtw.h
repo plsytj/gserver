@@ -11,7 +11,7 @@ class gtw
         void run();
         void stop();
     private:
-
+        socket_server server_;
 };
 
 #endif

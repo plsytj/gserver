@@ -1,10 +1,16 @@
 #ifndef BASE_XLIB_XBYTEBUFFER_H_
 #define BASE_XLIB_XBYTEBUFFER_H_
+#include <stdint.h>
 #include <ext/mt_allocator.h>
 #include <string.h>
 #include <vector>
 #include <queue>
-#include "xlib/xCommand.h"
+
+#define MAX_BUFSIZE 65536
+#define PH_LEN 3
+#define MAX_PACKSIZE (MAX_BUFSIZE-PH_LEN)
+#define MIN_PACKSIZE 5  // for encrypt
+#define MAX_CMD 255
 
 class bytebuff
 {
@@ -31,7 +37,7 @@ class bytebuff
     uint32_t buffer_size() const { return buffer_size_; }
 
   private:
-    BYTE *byte_buffer_;
+    unsigned char *byte_buffer_;
     uint32_t buffer_size_;
     uint32_t buffer_offset_;
 

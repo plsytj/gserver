@@ -1,10 +1,11 @@
 #include "socket_server.h"
+#include <errno.h>
 
-#define MAX_SERVER_ENENT 256
 socket_server::socket_server()
     : listen_fd(-1)
     , epoll_fd(-1)
     , sequence_(0)
+    , run(false)
 {
 }
 
@@ -15,11 +16,30 @@ socket_server::~socket_server()
     if (listen_fd != -1)
         close(listen_fd);
 }
+void socket_server::start()
+{
+    run = true;
+    thread_ = std::thread(&socket_server::run, this);
+}
+
+void socket_server::stop()
+{
+    run = false;
+}
+
+void socket_server::work()
+{
+    while(run)
+    {
+        event_poll(10);
+    }
+}
 
 bool socket_server::listen(const char* addr, int port)
 {
     sockaddr_in localaddr;
-    unsigned long uladdr = INADDR_ANY;
+    unsigned long uladdr;
+    bool rc;
 
     epoll_fd = epoll_create(256);
     if ( epoll_fd < 0)
@@ -33,10 +53,9 @@ bool socket_server::listen(const char* addr, int port)
         return false;
     }
 
-    if ( addr && *addr != 0)
-        uladdr = inet_addr(szAddress);
-
-    if ( uladdr == INADDR_NONE )
+    if ( addr && *addr != 0) 
+        uladdr = inet_addr(addr);
+    else
         uladdr = INADDR_ANY;
 
     localaddr.sin_family		= AF_INET;
@@ -49,39 +68,44 @@ bool socket_server::listen(const char* addr, int port)
         return false;
     }
 
-    rc  = listen(listen_fd, SOMAXCONN);
+    rc  = ::listen(listen_fd, SOMAXCONN);
     if ( rc < 0)
     {
         return false;
     }
-    port_ = port;
 
-    sp_add(listen_fd);
+    sp_add(listen_fd, NULL);
     return true;
 }
 
 void socket_server::sp_add(int fd, void* ud)
 {
     struct epoll_event ev;
-    ev.events = EPOLLIN | EPOLLLET;
+    ev.events = EPOLLIN;
     ev.data.ptr = ud;
     ev.data.fd = fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
 }
 
-void socket_server::sp_write(int fd, void* ud, bool enable)
+void socket_server::sp_write(int fd, void* ud)
 {
     struct epoll_event ev;
-    events = EPOLLIN | (enable ? EPOLLOUT : 0) | EPOLLLET;
+    ev.events = EPOLLIN |  EPOLLOUT | EPOLLET;
     ev.data.ptr = ud;
     ev.data.fd = fd;
-    epoll_ctl(efd, EPOLL_CTL_MOD, fd, &ev);
+    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev);
 }
 
-void socket_server::poll(int timeout)
+void socket_server::sp_del(int fd)
 {
-    bzero(events, MAX_SERVER_EVENT * sizeof(epoll_event));
-    int nfds = epoll_wait(epoll_fd, events, MAX_SERVER_EVENT, timeout);
+    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, NULL);
+}
+
+
+void socket_server::event_poll(int timeout)
+{
+    memset(events, 0, MAX_SERVER_ENENT * sizeof(epoll_event));
+    int nfds = epoll_wait(epoll_fd, events, MAX_SERVER_ENENT, timeout);
 
     for (int i = 0; i < nfds; ++i)
     {
@@ -119,7 +143,7 @@ bool socket_server::accept_event()
     int cfd = accept(listen_fd, (struct sockaddr*)&caddr, (socklen_t*)&addrlen);
     if (-1 == cfd)
     {
-        fprintf(stderr, "accept error:(%d)%s", errno, strerr(errno));
+        fprintf(stderr, "accept error:(%d)%s", errno, strerror(errno));
         return false;
     }
 
@@ -132,7 +156,7 @@ bool socket_server::accept_event()
 
 bool socket_server::out_event(socket_t* conn)
 {
-    int ret = conn->realSendCmd();
+    int ret = conn->sendCmd();
     if (-1 == ret)
     {
         conn->close();
@@ -140,25 +164,25 @@ bool socket_server::out_event(socket_t* conn)
     }
     else if (ret > 0)
     {
-        sp_write(conn->fd, conn, enable );
+        sp_write(conn->get_fd(), conn );
     }
     return true;
 }
 
 bool socket_server::in_event(socket_t* conn)
 {
-    if (!conn->readCmdFromSocket())
+    if (!conn->readToBuf())
     {
         conn->close();
         return false;
     }
 
     unsigned char* cmd = NULL;
-    unsigned short cmdLen;
-    while (conn->getCmdFromSocketBuf(cmd, cmdLen))
+    unsigned short len;
+    while (conn->getCmd(cmd, len))
     {
-        conn->putCmdToQueue(cmd, cmdLen);
-        conn->popCmdFromScoketBuf();
+        conn->putCmdToQueue(cmd, len);
+        conn->popCmd();
     }
     return true;
 }

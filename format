@@ -1,0 +1,14 @@
+#!/bin/sh
+astyle --style=allman \
+  --indent=spaces=4 \
+  --indent-classes \
+  --indent-switches \
+  --indent-cases \
+  --indent-namespaces \
+  --indent-preprocessor \
+  --pad-oper \
+  --pad-header \
+  --align-pointer=type \
+  --align-reference=type \
+  --keep-one-line-statements \
+  --keep-one-line-blocks $*

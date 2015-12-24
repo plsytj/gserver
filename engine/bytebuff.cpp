@@ -1,5 +1,6 @@
-#include "xlib/bytebuff.h"
+#include "bytebuff.h"
 
+#define MAX_BUFSIZE 65536
 bytebuff::bytebuff()
 {
   buffer_offset_ = 0;
