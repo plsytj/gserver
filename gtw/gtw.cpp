@@ -97,13 +97,6 @@ bool gtw::out_event(socket_t* conn)
         conn->close();
         return false;
     }
-    else if( ret == 0 )
-    {
-        printf("perr down:");
-        server_.sp_del(conn->get_fd());
-        conn->close();
-        return false;
-    }
     else if (ret > 0)
     {
         server_.sp_write(conn->get_fd(), conn );

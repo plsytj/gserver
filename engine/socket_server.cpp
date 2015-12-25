@@ -55,7 +55,6 @@ bool socket_server::listen(const char* addr, int port)
     }
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLERR;
-    ev.data.ptr = NULL;
     ev.data.fd = listen_fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, listen_fd, &ev);
 
@@ -67,7 +66,6 @@ void socket_server::sp_add(int fd, void* ud)
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
     ev.data.ptr = ud;
-    ev.data.fd = fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
 }
 
@@ -76,7 +74,6 @@ void socket_server::sp_write(int fd, void* ud)
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
     ev.data.ptr = ud;
-    ev.data.fd = fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev);
 }
 
