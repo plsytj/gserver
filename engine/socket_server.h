@@ -10,6 +10,7 @@
 struct poll_event
 {
     socket_t * sock;
+    bool accept;
     bool read;
     bool write;
 };
@@ -21,11 +22,11 @@ class socket_server
         ~socket_server();
     public:
         bool listen(const char* addr, int port);
-        void event_poll(int timeout,poll_event * e, int max );
-        void processmsg(const void* cmd, uint16_t len);
+        int event_poll(int timeout,poll_event * e, int max );
         void start();
         void stop();
 
+        socket_t* handle_accept();
     public:
         /* event_poll ctl */
         void sp_add(int fd, void* ud);
@@ -34,17 +35,14 @@ class socket_server
     private:
         void work();
     private:
-        bool    accept_event();
+        /*
+        socket_t *  accept_event();
         bool    in_event(socket_t* conn);
         bool    out_event(socket_t* conn);
+        */
     private:
         int     epoll_fd;
         int     listen_fd;
-        epoll_event events[MAX_SERVER_ENENT];
-    private:
-        std::map<uint64_t, socket_t*> conn_map;
-        uint64_t sequence_;
-        //std::thread thread_;
 };
 
 #endif

@@ -5,9 +5,8 @@
 #define COMPRESS_LEVEL 6
 #define MIN_COMPRESS_SIZE 48
 
-socket_t::socket_t(int id, int sockfd, const sockaddr_in& addr)
+socket_t::socket_t(int sockfd, const sockaddr_in& addr)
 {
-    id_ = id;
     fd_ = sockfd;
     addr_ = addr;
 
@@ -149,11 +148,11 @@ int socket_t::send_cmd()
 
 bool socket_t::send_cmd(const void* data, uint16_t len)
 {
+    scoped_lock_t l(mutex);
     if (!valid()) return false;
 
     PacketHead ph;
     ph.len = len;
-    ScopeWriteLock swl(_cmd_write_critical);
     cmd_write_buf.Put(&ph, PH_LEN);
     cmd_write_buf.Put(data, len);
     return true;
@@ -208,7 +207,7 @@ void socket_t::pre_send_cmd()
 {
     do
     {
-        ScopeWriteLock swl(_cmd_write_critical);
+        scoped_lock_t l(mutex);
         tmp_write_buf.Reset();
         tmp_write_buf.Copy(cmd_write_buf);
         cmd_write_buf.Reset();

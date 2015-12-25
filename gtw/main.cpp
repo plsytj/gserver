@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, stop_server);
     signal(SIGINT, stop_server);
 
-    server->init(port);
+    server->init("0.0.0.0", port);
     server->run();
 
     return 0;

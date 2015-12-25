@@ -1,12 +1,12 @@
 #pragma once
-#include "bytebuff.h"
-#include "xCmdQueue.h"
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <stdio.h>
+#include "bytebuff.h"
+#include "mutex.hpp"
 
 // 包头标志
 enum PACKET_FLAG_ENUM_TYPE
@@ -17,11 +17,12 @@ enum PACKET_FLAG_ENUM_TYPE
 
 struct PacketHead
 {
-    unsigned char flags;
-    uint16_t len;
+    //unsigned char flags;
+    uint32_t len;
     PacketHead()
     {
-        flags = len = 0;
+        //flags = 0;
+        len = 0;
     }
 };
 
@@ -38,7 +39,7 @@ struct Packet
 class socket_t
 {
     public:
-        socket_t(int id, int fd, const sockaddr_in& addr);
+        socket_t(int fd, const sockaddr_in& addr);
         ~socket_t();
     public:
         int get_fd() const {return fd_;}
@@ -63,18 +64,13 @@ class socket_t
         int fd_;
         sockaddr_in addr_;
     public:
-        in_addr& getIP()
+        const sockaddr_in& get_addr() const
         {
-            return addr_.sin_addr;
+            return addr_;
         }
-        uint16_t getPort()
-        {
-            return addr_.sin_port;
-        }
-
-        //发送缓存
+        
     private:
-        xRWLock _cmd_write_critical;
+        mutex_t mutex;
 
         bytebuff read_buf;
         bytebuff cmd_write_buf;
@@ -85,7 +81,6 @@ class socket_t
 
         uint32_t unCompCmdRealSize;//未解压的消息长度
 
-        xRWLock _send_critical;
         int id_;
 
 };
