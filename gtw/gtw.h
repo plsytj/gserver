@@ -1,5 +1,6 @@
 #ifndef __GTW_INCLUDE__
 #define __GTW_INCLUDE__
+#include "socket_server.h"
 
 class gtw
 {
@@ -7,7 +8,7 @@ class gtw
         gtw();
         ~gtw();
     public:
-        bool init(int port);
+        bool init(const char * addr, int port);
         void run();
         void stop();
     private:

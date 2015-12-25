@@ -6,6 +6,14 @@
 #include "socket.h"
 
 #define MAX_SERVER_ENENT 256
+
+struct poll_event
+{
+    socket_t * sock;
+    bool read;
+    bool write;
+}
+
 class socket_server
 {
     public:
@@ -13,7 +21,7 @@ class socket_server
         ~socket_server();
     public:
         bool listen(const char* addr, int port);
-        void event_poll(int timeout);
+        void event_poll(int timeout, );
         void processmsg(const void* cmd, uint16_t len);
         void start();
         void stop();
@@ -30,14 +38,13 @@ class socket_server
         bool    in_event(socket_t* conn);
         bool    out_event(socket_t* conn);
     private:
-        int         epoll_fd;
-        int         listen_fd;
+        int     epoll_fd;
+        int     listen_fd;
         epoll_event events[MAX_SERVER_ENENT];
     private:
         std::map<uint64_t, socket_t*> conn_map;
         uint64_t sequence_;
-        std::thread thread_;
-        bool run; 
+        //std::thread thread_;
 };
 
 #endif

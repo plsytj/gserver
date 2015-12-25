@@ -16,24 +16,6 @@ socket_server::~socket_server()
     if (listen_fd != -1)
         close(listen_fd);
 }
-void socket_server::start()
-{
-    run = true;
-    thread_ = std::thread(&socket_server::run, this);
-}
-
-void socket_server::stop()
-{
-    run = false;
-}
-
-void socket_server::work()
-{
-    while(run)
-    {
-        event_poll(10);
-    }
-}
 
 bool socket_server::listen(const char* addr, int port)
 {
@@ -101,8 +83,29 @@ void socket_server::sp_del(int fd)
     epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, NULL);
 }
 
+void socket_server::event_poll(int timeout, poll_event * e, int max)
+{
+    epoll_event events[max];
+    int nfds = epoll_wait(epoll_fd, events, max, timeout);
+    for (int i = 0; i < nfds; ++i)
+    {
+        if ((events[i].data.fd == listen_fd))
+        {
+            accept_event();
+        }
+        else
+        {
+            socket_t* conn = (socket_t*)events[i].data.ptr;
+            if (!conn) continue;
+            unsigned int flag = event[i].events;
+            e[i].read = (flag & EPOLLIN) != 0;
+            e[i].write = (flag & EPOLLOUT) != 0;
+        }
+    }
+}
 
-void socket_server::event_poll(int timeout)
+
+/*void socket_server::event_poll(int timeout)
 {
     memset(events, 0, MAX_SERVER_ENENT * sizeof(epoll_event));
     int nfds = epoll_wait(epoll_fd, events, MAX_SERVER_ENENT, timeout);
@@ -133,6 +136,7 @@ void socket_server::event_poll(int timeout)
         }
     }
 }
+*/
 
 
 bool socket_server::accept_event()
@@ -147,10 +151,11 @@ bool socket_server::accept_event()
         return false;
     }
 
-    socket_t* sock = new socket_t(cfd, caddr);
+    sequence_ ++;
+    socket_t* sock = new socket_t(sequence_, cfd, caddr);
     sp_write(cfd, sock);
 
-    conn_map[sequence_++] = sock;
+    conn_map[sequence_] = sock;
     return true;
 }
 

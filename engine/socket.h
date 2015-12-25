@@ -38,7 +38,7 @@ struct Packet
 class socket_t
 {
 	public:
-		socket_t(int fd, const sockaddr_in &addr);
+		socket_t(int id, int fd, const sockaddr_in &addr);
 		~socket_t();
 
 		int get_fd() const {return _fd;}
@@ -119,5 +119,6 @@ class socket_t
 		bytebuff cmdBuffer;		//存放解压后的数据
 
 		xRWLock _send_critical;
+        int id_;
 
 };

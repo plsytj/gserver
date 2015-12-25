@@ -9,6 +9,7 @@ bool gtw::init(const char * addr, int port)
 
 void run()
 {
+    while(server_.eve
 
 }
 

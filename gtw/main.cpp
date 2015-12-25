@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
 #include "gtw.h"
 
 
 gtw * server = NULL;
 
-void stop_server(){
+void stop_server(int ){
     if(server)
         server->stop();
 }

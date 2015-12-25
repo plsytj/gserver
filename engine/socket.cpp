@@ -10,8 +10,9 @@
 
 unsigned char fixedkey[8] = { 95,27,5,20,131,4,8,88 };
 
-socket_t::socket_t(int sockfd, const sockaddr_in &addr)
+socket_t::socket_t(int id, int sockfd, const sockaddr_in &addr)
 {
+    id_ = id;
 	_fd = sockfd;
     _addr = addr;
 
