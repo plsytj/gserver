@@ -5,7 +5,6 @@ socket_server::socket_server()
     : listen_fd(-1)
     , epoll_fd(-1)
     , sequence_(0)
-    , run(false)
 {
 }
 
@@ -72,7 +71,7 @@ void socket_server::sp_add(int fd, void* ud)
 void socket_server::sp_write(int fd, void* ud)
 {
     struct epoll_event ev;
-    ev.events = EPOLLIN |  EPOLLOUT | EPOLLET;
+    ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
     ev.data.ptr = ud;
     ev.data.fd = fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev);
@@ -97,7 +96,7 @@ void socket_server::event_poll(int timeout, poll_event * e, int max)
         {
             socket_t* conn = (socket_t*)events[i].data.ptr;
             if (!conn) continue;
-            unsigned int flag = event[i].events;
+            unsigned int flag = events[i].events;
             e[i].read = (flag & EPOLLIN) != 0;
             e[i].write = (flag & EPOLLOUT) != 0;
         }
@@ -161,7 +160,7 @@ bool socket_server::accept_event()
 
 bool socket_server::out_event(socket_t* conn)
 {
-    int ret = conn->sendCmd();
+    int ret = conn->send_cmd();
     if (-1 == ret)
     {
         conn->close();
@@ -176,7 +175,7 @@ bool socket_server::out_event(socket_t* conn)
 
 bool socket_server::in_event(socket_t* conn)
 {
-    if (!conn->readToBuf())
+    if (!conn->read_cmd())
     {
         conn->close();
         return false;
@@ -184,10 +183,10 @@ bool socket_server::in_event(socket_t* conn)
 
     unsigned char* cmd = NULL;
     unsigned short len;
-    while (conn->getCmd(cmd, len))
+    while (conn->get_cmd(cmd, len))
     {
-        conn->putCmdToQueue(cmd, len);
-        conn->popCmd();
+        //conn->putCmdToQueue(cmd, len);
+        //conn->popCmd();
     }
     return true;
 }

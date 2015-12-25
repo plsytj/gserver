@@ -12,7 +12,7 @@ struct poll_event
     socket_t * sock;
     bool read;
     bool write;
-}
+};
 
 class socket_server
 {
@@ -21,7 +21,7 @@ class socket_server
         ~socket_server();
     public:
         bool listen(const char* addr, int port);
-        void event_poll(int timeout, );
+        void event_poll(int timeout,poll_event * e, int max );
         void processmsg(const void* cmd, uint16_t len);
         void start();
         void stop();
