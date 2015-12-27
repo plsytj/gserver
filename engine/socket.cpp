@@ -48,6 +48,8 @@ bool socket_t::connect(const char* host, const char * serv)
     char buf[INET6_ADDRSTRLEN];
     if(inet_ntop(addr_.sa_family,sin_addr, buf, sizeof(buf)))
         printf("connect to %s:%s\n", buf, serv);
+    else
+        perror("inet_ntop");
    
     init(fd, addr);
     return true;
