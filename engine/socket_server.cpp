@@ -1,5 +1,9 @@
 #include "socket_server.h"
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include "wrapsocket.h"
 
 socket_server::socket_server()
     : listen_fd(-1)
@@ -14,45 +18,20 @@ socket_server::~socket_server()
     if (listen_fd != -1)
         close(listen_fd);
 }
+    
 
-bool socket_server::listen(const char* addr, int port)
+
+bool socket_server::open(const char * host, const char * serv, socklen_t *addrlenp)
 {
-    sockaddr_in localaddr;
-    unsigned long uladdr;
-    bool rc;
-
     epoll_fd = epoll_create(256);
     if ( epoll_fd < 0)
     {
         return false;
     }
-    listen_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-    if (listen_fd == -1)
+    
+    listen_fd = tcp_listen(host, serv, addrlenp);
+    if(listen_fd < 0)
     {
-        perror("socket: ");
-        return false;
-    }
-
-    if ( addr && *addr != 0) 
-        uladdr = inet_addr(addr);
-    else
-        uladdr = INADDR_ANY;
-
-    localaddr.sin_family		= AF_INET;
-    localaddr.sin_addr.s_addr	= uladdr;
-    localaddr.sin_port			= htons(port);
-
-    rc = bind(listen_fd, (struct sockaddr*)&localaddr, sizeof(sockaddr_in));
-    if (rc < 0)
-    {
-        perror("bind: ");
-        return false;
-    }
-
-    rc  = ::listen(listen_fd, SOMAXCONN);
-    if ( rc < 0)
-    {
-        perror("listen: ");
         return false;
     }
     struct epoll_event ev;
@@ -108,19 +87,31 @@ int socket_server::event_poll(int timeout, poll_event * e, int max)
     return nfds;
 }
 
+
 socket_t* socket_server::handle_accept()
 {
-    sockaddr_in caddr;
-    int addrlen = sizeof(caddr);
+    union sockaddr_all caddr;
+    socklen_t addrlen = sizeof(caddr);
     memset(&caddr, 0,  sizeof(caddr));
-    int cfd = accept(listen_fd, (struct sockaddr*)&caddr, (socklen_t*)&addrlen);
-    if (-1 == cfd)
+    int cfd = accept(listen_fd, (struct sockaddr*)&caddr.s, &addrlen);
+    if (cfd < 0)
     {
         fprintf(stderr, "accept error:(%d)%s", errno, strerror(errno));
         return NULL; 
     }
+    void * sin_addr = (caddr.s.sa_family == AF_INET) ? (void*)&caddr.v4.sin_addr : (void *)&caddr.v6.sin6_addr;
+    int sin_port = ntohs((caddr.s.sa_family == AF_INET) ? caddr.v4.sin_port : caddr.v6.sin6_port);
+    char tmp[INET6_ADDRSTRLEN];
+    if (inet_ntop(caddr.s.sa_family, sin_addr, tmp, sizeof(tmp))) {
+        printf("connection from %s:%d\n", tmp, sin_port);
+    }    
+    else {
+        perror("inet_ntop: ");
+    }
+    socket_t* sock = new socket_t();
+    sock->init(cfd, caddr.s);
+    sock->set_nonblock();
 
-    socket_t* sock = new socket_t(cfd, caddr);
     poll_add(cfd, sock);
 
     return sock;

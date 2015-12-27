@@ -8,13 +8,14 @@ gtw::gtw()
 gtw::~gtw()
 {
 }
-bool gtw::init(const char * addr, int port)
+bool gtw::init(const char * host, const char* service)
 {
-    if( !ss_.listen(addr, port))
+    if( !ss_.open(host, service, NULL))
     {
-        fprintf(stderr, "error listen on %s:%d\n", addr, port);
+        fprintf(stderr, "error listen on %s:%s\n", host, service);
         return false;
     }
+    return true;
 }
 
 void gtw::run() {
@@ -55,13 +56,8 @@ void gtw::accept_event()
 {
     socket_t * sock = ss_.handle_accept();
     if(sock == NULL) return;
-    const sockaddr_in & addr = sock->get_addr();
 
-    char buf[256];
-    inet_ntop(AF_INET, &addr.sin_addr, buf, sizeof(buf));
-
-    printf("new client:%s:%d\n", buf, addr.sin_port);
-    conn_map[sequence++] = sock;
+    //conn_map[sequence++] = sock;
 }
 
 bool gtw::in_event(socket_t* conn)
@@ -72,7 +68,6 @@ bool gtw::in_event(socket_t* conn)
 
 	if( !conn->read_cmd())
     {
-        printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~peer down\n");
         ss_.poll_del(conn->get_fd());
         conn->close();
         return false;

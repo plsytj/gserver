@@ -15,13 +15,19 @@ struct poll_event
     bool write;
 };
 
+union sockaddr_all {
+    struct sockaddr s;
+    struct sockaddr_in v4;
+    struct sockaddr_in6 v6;
+};
+
 class socket_server
 {
     public:
         socket_server();
         ~socket_server();
     public:
-        bool listen(const char* addr, int port);
+        bool open(const char * host, const char * serv, socklen_t *addrlenp);
         socket_t* handle_accept();
     public:
         /* event_poll ctl */

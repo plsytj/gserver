@@ -8,7 +8,7 @@ class gtw
         gtw();
         ~gtw();
     public:
-        bool    init(const char * addr, int port);
+        bool    init(const char * host, const char* service);
         void    run();
         void    stop();
         bool    in_event(socket_t* conn);

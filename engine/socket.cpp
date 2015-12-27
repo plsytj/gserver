@@ -1,15 +1,13 @@
 #include "socket.h"
 #include <errno.h>
 #include <fcntl.h>
+#include "wrapsocket.h"
 
 #define COMPRESS_LEVEL 6
 #define MIN_COMPRESS_SIZE 48
 
-socket_t::socket_t(int sockfd, const sockaddr_in& addr)
+socket_t::socket_t()
 {
-    fd_ = sockfd;
-    addr_ = addr;
-
     _write_buffer.Resize(MAX_BUFSIZE * 2);
     read_buf.Resize(MAX_BUFSIZE * 2);
     encBuffer.Resize(MAX_BUFSIZE);
@@ -17,7 +15,6 @@ socket_t::socket_t(int sockfd, const sockaddr_in& addr)
     tmp_write_buf.Resize(MAX_BUFSIZE * 2);
 
     unCompCmdRealSize = 0;
-    set_nonblock();
 }
 
 socket_t::~socket_t()
@@ -25,25 +22,22 @@ socket_t::~socket_t()
     close();
 }
 
-bool socket_t::connect(const char* ip, int port)
+void socket_t::init(int sockfd, const sockaddr& addr)
 {
-    fd_ = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd_ < 0)
-    {
-        fprintf(stderr, "[Socket],connect() %s:%d socket failed %p", ip, port, this);
-        return false;
-    }
-    bzero(&addr_, sizeof(addr_));
-    addr_.sin_family = AF_INET;
-    addr_.sin_addr.s_addr = inet_addr(ip);
-    addr_.sin_port = htons(port);
+    fd_ = sockfd;
+    memcpy((void*)&addr_, &addr, sizeof(addr));
+}
 
-    int ret = ::connect(fd_, (sockaddr*)&addr_, sizeof(sockaddr_in));
-    if (0 != ret)
-    {
-        fprintf(stderr, "[Socket],connect() %s:%d failed with error %d", ip, port, ret);
+bool socket_t::connect(const char* host, const char * serv)
+{
+    fd_ = tcp_connect(host, serv, &addr_);
+    if( fd_ < 0)
         return false;
-    }
+    void * sin_addr = (addr_.sa_family == AF_INET) ? (void*)&((struct sockaddr_in *)&addr_)->sin_addr : (void*)&((struct sockaddr_in6 *)&addr_)->sin6_addr;
+    char buf[INET6_ADDRSTRLEN];
+    if(inet_ntop(addr_.sa_family,sin_addr, buf, sizeof(buf)))
+        printf("connect to %s:%s", buf, serv);
+   
     return true;
 }
 

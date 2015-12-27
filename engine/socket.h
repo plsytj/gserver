@@ -39,17 +39,16 @@ struct Packet
 class socket_t
 {
     public:
-        socket_t(int fd, const sockaddr_in& addr);
+        socket_t();
         ~socket_t();
     public:
+        void init(int fd, const sockaddr&  addr);
         int get_fd() const {return fd_;}
         bool valid() {return fd_ != -1;}
         void shutdown(int how);
-        bool connect(const char* ip, int port);
+        bool connect(const char* host, const char * serv);
         void close();
-
         void set_nonblock();
-
         bool get_cmd(unsigned char*& cmd, uint16_t& len);
         bool pop_cmd();
         bool send_cmd(const void* data, uint16_t len);
@@ -62,9 +61,9 @@ class socket_t
         uint16_t sizeMod8(uint16_t len);
     protected:
         int fd_;
-        sockaddr_in addr_;
+        struct sockaddr addr_;
     public:
-        const sockaddr_in& get_addr() const
+        const sockaddr& get_addr() const
         {
             return addr_;
         }

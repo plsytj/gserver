@@ -18,14 +18,12 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    int port = atoi(argv[1]);
-
     server = new gtw();
 
     signal(SIGTERM, stop_server);
     signal(SIGINT, stop_server);
 
-    server->init("0.0.0.0", port);
+    server->init("0.0.0.0", argv[1]);
     server->run();
 
     return 0;
