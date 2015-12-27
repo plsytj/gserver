@@ -98,6 +98,7 @@ bool socket_t::read_cmd()
         }
         else if (0 == ret) //peer shutdown
         {
+            fprintf(stderr, "socket:%d peer down", fd_);
             final_ret = false;
             break;
         }

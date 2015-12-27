@@ -70,18 +70,17 @@ bool gtw::in_event(socket_t* conn)
     unsigned char* cmd = NULL;
     unsigned short len;
 
-    int readsize = conn->read_cmd();
-
-    if(readsize == 0 )
+	if( !conn->read_cmd())
     {
+        printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~peer down\n");
         server_.sp_del(conn->get_fd());
         conn->close();
         return false;
-    }
-    printf("read size:%d\n", readsize);
+   	}
 
     while (conn->get_cmd(cmd, len))
     {
+		conn->pop_cmd();
         do_cmd(conn, cmd, len);
     }
     return true;
@@ -106,6 +105,6 @@ bool gtw::out_event(socket_t* conn)
 
 void gtw::do_cmd(socket_t * conn, void * data, int len)
 {
-    printf("recv client:(%d)%s", len, (char*)data);
+    printf("recv client:(%d)%s\n", len, (char*)data);
     conn->send_cmd(data, len);
 }
