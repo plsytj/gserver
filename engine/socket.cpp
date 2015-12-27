@@ -36,7 +36,7 @@ bool socket_t::connect(const char* host, const char * serv)
     void * sin_addr = (addr_.sa_family == AF_INET) ? (void*)&((struct sockaddr_in *)&addr_)->sin_addr : (void*)&((struct sockaddr_in6 *)&addr_)->sin6_addr;
     char buf[INET6_ADDRSTRLEN];
     if(inet_ntop(addr_.sa_family,sin_addr, buf, sizeof(buf)))
-        printf("connect to %s:%s", buf, serv);
+        printf("connect to %s:%s\n", buf, serv);
    
     return true;
 }
@@ -45,9 +45,9 @@ void socket_t::close()
 {
     if (valid())
     {
-        if( !::close(fd_) )
+        if(::close(fd_) < 0)
         {
-            perror("close: ");
+            perror("close error:  ");
         }
         fd_ = -1;
     }
@@ -73,7 +73,7 @@ void socket_t::set_nonblock()
 
 bool socket_t::read_cmd()
 {
-    bool final_ret = true;
+    bool rc = true;
     while (1)
     {
         if (read_buf.GetLeft() < MAX_BUFSIZE)
@@ -81,20 +81,20 @@ bool socket_t::read_cmd()
             read_buf.Resize(read_buf.buffer_size() + MAX_BUFSIZE);
         }
 
-        int ret = ::recv(fd_, read_buf.GetBufOffset(), MAX_BUFSIZE, 0);
+        int ret = read(fd_, read_buf.GetBufOffset(), MAX_BUFSIZE);
         if (ret < 0)
         {
             if (errno != EAGAIN && errno != EWOULDBLOCK )
             {
                 fprintf(stderr, "[SOCKET]接收错误,errno:%u,%s", errno, strerror(errno));
-                final_ret = false;
+                rc = false;
             }
             break;
         }
         else if (0 == ret) //peer shutdown
         {
-            fprintf(stderr, "socket:%d peer down", fd_);
-            final_ret = false;
+            fprintf(stderr, "socket:%d peer down\n", fd_);
+            rc = false;
             break;
         }
         else
@@ -102,7 +102,7 @@ bool socket_t::read_cmd()
             read_buf.Put(ret);
         }
     }
-    return final_ret;
+    return rc;
 }
 
 int socket_t::send_cmd()
@@ -110,20 +110,21 @@ int socket_t::send_cmd()
     if (!valid()) return -1;
 
     pre_send_cmd();
-    int final_ret = 0;
+    int rc = 0;
     int all = _write_buffer.buffer_offset();
     while (all)
     {
         int realsend = std::min(all, MAX_BUFSIZE * 2);
-        int ret = ::send(fd_, _write_buffer.GetBufBegin(), realsend, 0);
+        int ret = write(fd_, _write_buffer.GetBufBegin(), realsend);
         if (ret > 0)
         {
             _write_buffer.Pop(ret);
             all = _write_buffer.buffer_offset();
+            rc = all;
         }
         else if (ret == 0)
         {
-            final_ret = _write_buffer.buffer_offset();
+            rc = _write_buffer.buffer_offset();
             fprintf(stderr, "[SOCKET],发送异常,fd:%d,ret:%d,real:%d", fd_, ret, realsend);
             break;
         }
@@ -132,13 +133,13 @@ int socket_t::send_cmd()
             if (errno != EWOULDBLOCK || errno != EAGAIN)
             {
                 fprintf(stderr, "[SOCKET],发送错误,fd:%d,ret:%d,real:%d,errno:%u,%s", fd_, ret, realsend, errno, strerror(errno));
-                final_ret = -1;
+                rc = -1;
                 _write_buffer.Pop(all);
             }
             break;
         }
     }
-    return final_ret;
+    return rc;
 }
 
 

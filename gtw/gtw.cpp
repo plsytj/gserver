@@ -10,11 +10,12 @@ gtw::~gtw()
 }
 bool gtw::init(const char * host, const char* service)
 {
-    if( !ss_.open(host, service, NULL))
+    if( !ss_.open("::", service, NULL))
     {
         fprintf(stderr, "error listen on %s:%s\n", host, service);
         return false;
     }
+    printf("open ok...\n");
     return true;
 }
 
@@ -36,7 +37,7 @@ void gtw::run() {
             socklen_t len = sizeof(error);  
             int code = getsockopt(s->get_fd(), SOL_SOCKET, SO_ERROR, &error, &len);  
             if(code < 0)
-                printf("error..%d\n", error);
+                printf("SOL_SOCKET error:%d\n", error);
 
             if(e[i].read)
                 in_event(s);

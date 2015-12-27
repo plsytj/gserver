@@ -22,4 +22,5 @@ set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(engine)
 add_subdirectory(gtw)
+add_subdirectory(test)
 

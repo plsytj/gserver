@@ -38,6 +38,7 @@ tcp_connect(const char *host, const char *serv, sockaddr *addr)
 	if (res == NULL)	/* errno set from final connect() */
     {
 		fprintf(stderr, "tcp_connect error for %s, %s, error:%s", host, serv, strerror(errno));
+        return -1;
     }
 
     if(addr)
