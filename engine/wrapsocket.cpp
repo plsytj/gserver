@@ -7,10 +7,12 @@
 #include <errno.h>
 
 int
-tcp_connect(const char *host, const char *serv, sockaddr *addr)
+tcp_connect(const char *host, const char *serv)
 {
 	int				sockfd, n;
 	struct addrinfo	hints, *res, *ressave;
+
+    sockfd = -1;
 
 	bzero(&hints, sizeof(struct addrinfo));
 	hints.ai_family = AF_UNSPEC;
@@ -38,11 +40,7 @@ tcp_connect(const char *host, const char *serv, sockaddr *addr)
 	if (res == NULL)	/* errno set from final connect() */
     {
 		fprintf(stderr, "tcp_connect error for %s, %s, error:%s", host, serv, strerror(errno));
-        return -1;
     }
-
-    if(addr)
-        memcpy(addr, res->ai_addr, sizeof(struct sockaddr));
 
 	freeaddrinfo(ressave);
 

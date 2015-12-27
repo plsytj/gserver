@@ -7,10 +7,8 @@
 #include <queue>
 
 #define MAX_BUFSIZE 65536
-#define PH_LEN 4
-#define MAX_PACKSIZE (MAX_BUFSIZE-PH_LEN)
-#define MIN_PACKSIZE 5  // for encrypt
-#define MAX_CMD 255
+//#define MAX_PACKSIZE (MAX_BUFSIZE-siz)
+#define MIN_PACKSIZE 4  
 
 class bytebuff
 {

@@ -17,23 +17,21 @@ enum PACKET_FLAG_ENUM_TYPE
 
 struct PacketHead
 {
-    //unsigned char flags;
     uint32_t len;
     PacketHead()
     {
-        //flags = 0;
         len = 0;
     }
-};
+}__attribute__((packed));
 
 struct Packet
 {
     PacketHead ph;
     unsigned char data[0];
 
-    uint16_t getDataSize() { return ph.len; }
-    uint16_t getFullSize() { return PH_LEN + ph.len; }
-};
+    uint32_t getDataSize() { return ph.len; }
+    uint32_t getFullSize() { return sizeof(Packet) + ph.len; }
+}__attribute__((packed));
 
 
 class socket_t

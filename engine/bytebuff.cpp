@@ -39,11 +39,6 @@ void bytebuff::Resize(uint32_t len)
 
 uint32_t bytebuff::Put(const void* data, uint32_t len)
 {
-    if (len > MAX_PACKSIZE)
-    {
-        return 0;
-    }
-
     while (GetLeft() < len)
     {
         Resize(buffer_size() + MAX_BUFSIZE * 10);

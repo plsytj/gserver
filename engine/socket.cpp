@@ -30,14 +30,26 @@ void socket_t::init(int sockfd, const sockaddr& addr)
 
 bool socket_t::connect(const char* host, const char * serv)
 {
-    fd_ = tcp_connect(host, serv, &addr_);
-    if( fd_ < 0)
+    struct sockaddr addr;
+    int fd;
+    socklen_t len;
+    fd = tcp_connect(host, serv);
+    if( fd < 0)
         return false;
-    void * sin_addr = (addr_.sa_family == AF_INET) ? (void*)&((struct sockaddr_in *)&addr_)->sin_addr : (void*)&((struct sockaddr_in6 *)&addr_)->sin6_addr;
+
+    len = sizeof(addr);
+    if( getpeername(fd, &addr, &len) < 0)
+    {
+        fprintf(stderr, "getpeername error:%s\n", strerror(errno));
+        return false;
+    }
+    
+    void * sin_addr = (addr.sa_family == AF_INET) ? (void*)&((struct sockaddr_in *)&addr)->sin_addr : (void*)&((struct sockaddr_in6 *)&addr)->sin6_addr;
     char buf[INET6_ADDRSTRLEN];
     if(inet_ntop(addr_.sa_family,sin_addr, buf, sizeof(buf)))
         printf("connect to %s:%s\n", buf, serv);
    
+    init(fd, addr);
     return true;
 }
 
@@ -150,7 +162,7 @@ bool socket_t::send_cmd(const void* data, uint16_t len)
 
     PacketHead ph;
     ph.len = len;
-    cmd_write_buf.Put(&ph, PH_LEN);
+    cmd_write_buf.Put(&ph, sizeof(PacketHead));
     cmd_write_buf.Put(data, len);
     return true;
 }
@@ -216,18 +228,18 @@ void socket_t::pre_send_cmd()
         PacketHead* oldPHead = (PacketHead*)tmp_write_buf.GetBufBegin();
         encBuffer.Reset();
         PacketHead ph;
-        encBuffer.Put(&ph, PH_LEN);
-        encBuffer.Put(tmp_write_buf.GetBufOffset(PH_LEN), oldPHead->len);
+        encBuffer.Put(&ph, sizeof(PacketHead));
+        encBuffer.Put(tmp_write_buf.GetBufOffset(sizeof(PacketHead)), oldPHead->len);
         PacketHead* p = (PacketHead*)encBuffer.GetBufBegin();
 
-        uint16_t real_size = oldPHead->len;
+        uint32_t real_size = oldPHead->len;
         p->len = real_size;
-        real_size += PH_LEN;
+        real_size += sizeof(PacketHead);
 
         if (!writeToBuf(encBuffer.GetBufBegin(), real_size))
         {
             fprintf(stderr, "[socket_t],fd:%d,push cmd error",  fd_);
         }
-        tmp_write_buf.Pop(oldPHead->len + PH_LEN);
+        tmp_write_buf.Pop(real_size);
     }
 }
