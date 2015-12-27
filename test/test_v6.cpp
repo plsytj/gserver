@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     }
     strncpy(host, argv[1], sizeof(host));
     strncpy(serv, argv[2], sizeof(serv));
-    printf("enter thread num:%d\n");
+    printf("enter thread num:\n");
     
     scanf("%d", &thread_num);
 

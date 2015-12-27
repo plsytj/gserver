@@ -46,7 +46,7 @@ bool socket_t::connect(const char* host, const char * serv)
     
     void * sin_addr = (addr.sa_family == AF_INET) ? (void*)&((struct sockaddr_in *)&addr)->sin_addr : (void*)&((struct sockaddr_in6 *)&addr)->sin6_addr;
     char buf[INET6_ADDRSTRLEN];
-    if(inet_ntop(addr_.sa_family,sin_addr, buf, sizeof(buf)))
+    if(inet_ntop(addr.sa_family,sin_addr, buf, sizeof(buf)) != NULL)
         printf("connect to %s:%s\n", buf, serv);
     else
         perror("inet_ntop");
