@@ -10,7 +10,7 @@ gtw::~gtw()
 }
 bool gtw::init(const char * addr, int port)
 {
-    if( !server_.listen(addr, port))
+    if( !ss_.listen(addr, port))
     {
         fprintf(stderr, "error listen on %s:%d\n", addr, port);
         return false;
@@ -22,7 +22,7 @@ void gtw::run() {
     while(run_flag) {
         poll_event e[256];
         memset(e, 0, sizeof(poll_event)*256);
-        int num = server_.event_poll(10, e, 256);
+        int num = ss_.event_poll(10, e, 256);
 
         for(int i=0; i<num; ++i) {
 
@@ -53,7 +53,7 @@ void gtw::stop()
 
 void gtw::accept_event()
 {
-    socket_t * sock = server_.handle_accept();
+    socket_t * sock = ss_.handle_accept();
     if(sock == NULL) return;
     const sockaddr_in & addr = sock->get_addr();
 
@@ -73,7 +73,7 @@ bool gtw::in_event(socket_t* conn)
 	if( !conn->read_cmd())
     {
         printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~peer down\n");
-        server_.sp_del(conn->get_fd());
+        ss_.poll_del(conn->get_fd());
         conn->close();
         return false;
    	}
@@ -92,13 +92,13 @@ bool gtw::out_event(socket_t* conn)
     int ret = conn->send_cmd();
     if (-1 == ret )
     {
-        server_.sp_del(conn->get_fd());
+        ss_.poll_del(conn->get_fd());
         conn->close();
         return false;
     }
     else if (ret > 0)
     {
-        server_.sp_write(conn->get_fd(), conn );
+        //ss_.poll_write(conn->get_fd(), conn);
     }
     return true;
 }

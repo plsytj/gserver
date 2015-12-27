@@ -26,10 +26,10 @@ bool socket_server::listen(const char* addr, int port)
     {
         return false;
     }
-
     listen_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (listen_fd == -1)
     {
+        perror("socket: ");
         return false;
     }
 
@@ -45,12 +45,14 @@ bool socket_server::listen(const char* addr, int port)
     rc = bind(listen_fd, (struct sockaddr*)&localaddr, sizeof(sockaddr_in));
     if (rc < 0)
     {
+        perror("bind: ");
         return false;
     }
 
     rc  = ::listen(listen_fd, SOMAXCONN);
     if ( rc < 0)
     {
+        perror("listen: ");
         return false;
     }
     struct epoll_event ev;
@@ -61,7 +63,7 @@ bool socket_server::listen(const char* addr, int port)
     return true;
 }
 
-void socket_server::sp_add(int fd, void* ud)
+void socket_server::poll_add(int fd, void* ud)
 {
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
@@ -69,7 +71,7 @@ void socket_server::sp_add(int fd, void* ud)
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
 }
 
-void socket_server::sp_write(int fd, void* ud)
+void socket_server::poll_write(int fd, void* ud)
 {
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
@@ -77,7 +79,7 @@ void socket_server::sp_write(int fd, void* ud)
     epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev);
 }
 
-void socket_server::sp_del(int fd)
+void socket_server::poll_del(int fd)
 {
     epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, NULL);
 }
@@ -98,10 +100,6 @@ int socket_server::event_poll(int timeout, poll_event * e, int max)
         {
             e[i].sock = (socket_t*)events[i].data.ptr;
             unsigned int flag = events[i].events;
-            if(flag&EPOLLERR)
-            {
-                printf("socket error:%d\n", events[i].data.fd);
-            }
 
             e[i].read = (flag & EPOLLIN) != 0;
             e[i].write = (flag & EPOLLOUT) != 0;
@@ -109,40 +107,6 @@ int socket_server::event_poll(int timeout, poll_event * e, int max)
     }
     return nfds;
 }
-
-
-/*void socket_server::event_poll(int timeout)
-{
-    memset(events, 0, MAX_SERVER_ENENT * sizeof(epoll_event));
-    int nfds = epoll_wait(epoll_fd, events, MAX_SERVER_ENENT, timeout);
-
-    for (int i = 0; i < nfds; ++i)
-    {
-        if ((events[i].data.fd == listen_fd))
-        {
-            accept_event();
-        }
-        else
-        {
-            socket_t* conn = (socket_t*)events[i].data.ptr;
-            if (!conn) continue;
-
-            if (events[i].events & EPOLLERR)
-            {
-                conn->close();
-                continue;
-            }
-            else
-            {
-                if (events[i].events & EPOLLOUT)
-                    out_event(conn);
-                if (events[i].events & EPOLLIN)
-                    in_event(conn);
-            }
-        }
-    }
-}
-*/
 
 socket_t* socket_server::handle_accept()
 {
@@ -157,7 +121,7 @@ socket_t* socket_server::handle_accept()
     }
 
     socket_t* sock = new socket_t(cfd, caddr);
-    sp_add(cfd, sock);
+    poll_add(cfd, sock);
 
     return sock;
 }

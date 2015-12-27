@@ -48,7 +48,7 @@ class socket_t
         bool connect(const char* ip, int port);
         void close();
 
-        bool setNonBlock();
+        void set_nonblock();
 
         bool get_cmd(unsigned char*& cmd, uint16_t& len);
         bool pop_cmd();

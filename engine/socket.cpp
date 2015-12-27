@@ -17,7 +17,7 @@ socket_t::socket_t(int sockfd, const sockaddr_in& addr)
     tmp_write_buf.Resize(MAX_BUFSIZE * 2);
 
     unCompCmdRealSize = 0;
-    setNonBlock();
+    set_nonblock();
 }
 
 socket_t::~socket_t()
@@ -44,15 +44,17 @@ bool socket_t::connect(const char* ip, int port)
         fprintf(stderr, "[Socket],connect() %s:%d failed with error %d", ip, port, ret);
         return false;
     }
-
-    return setNonBlock();
+    return true;
 }
 
 void socket_t::close()
 {
     if (valid())
     {
-        ::close(fd_);
+        if( !::close(fd_) )
+        {
+            perror("close: ");
+        }
         fd_ = -1;
     }
 }
@@ -65,15 +67,14 @@ void socket_t::shutdown(int how)
     }
 }
 
-bool socket_t::setNonBlock()
+void socket_t::set_nonblock()
 {
     int flags = fcntl(fd_, F_GETFL, 0);
     flags |= O_NONBLOCK;
     if (-1 == fcntl(fd_, F_SETFL, flags))
     {
-        return false;
+        perror("fcntl: ");
     }
-    return true;
 }
 
 bool socket_t::read_cmd()

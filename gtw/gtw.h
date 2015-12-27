@@ -16,7 +16,7 @@ class gtw
         void    accept_event();
         void    do_cmd(socket_t * conn, void * data, int len);
     private:
-        socket_server server_;
+        socket_server ss_;
         std::map<uint64_t, socket_t*> conn_map;
         uint64_t sequence;
         bool run_flag;
