@@ -85,6 +85,35 @@ void socket_t::set_nonblock()
     }
 }
 
+bool socket_t::block_read()
+{
+    bool rc = true;
+    if (read_buf.GetLeft() < MAX_BUFSIZE)
+    {
+        read_buf.Resize(read_buf.buffer_size() + MAX_BUFSIZE);
+    }
+
+    int ret = read(fd_, read_buf.GetBufOffset(), MAX_BUFSIZE);
+    if (ret < 0)
+    {
+        if (errno != EAGAIN && errno != EWOULDBLOCK )
+        {
+            fprintf(stderr, "socket read error,errno:%u,%s\n", errno, strerror(errno));
+            rc = false;
+        }
+    }
+    else if (0 == ret) //peer shutdown
+    {
+        fprintf(stderr, "socket:%d peer down\n", fd_);
+        rc = false;
+    }
+    else
+    {
+        read_buf.Put(ret);
+    }
+    return rc;
+}
+
 bool socket_t::read_cmd()
 {
     bool rc = true;
@@ -100,7 +129,7 @@ bool socket_t::read_cmd()
         {
             if (errno != EAGAIN && errno != EWOULDBLOCK )
             {
-                fprintf(stderr, "[SOCKET]接收错误,errno:%u,%s", errno, strerror(errno));
+                fprintf(stderr, "socket read error, errno:%u,%s\n", errno, strerror(errno));
                 rc = false;
             }
             break;
@@ -145,12 +174,12 @@ int socket_t::send_cmd()
         else if (ret == 0)
         {
             rc = send_buf.buffer_offset();
-            fprintf(stderr, "[SOCKET],发送异常,fd:%d,ret:%d,real:%d", fd_, ret, realsend);
+            fprintf(stderr, "socket write error,fd:%d,errno:%u,%s\n", fd_, errno, strerror(errno));
             break;
         }
         else
         {
-            if (errno != EWOULDBLOCK || errno != EAGAIN)
+            if (errno != EWOULDBLOCK)
             {
                 fprintf(stderr, "socket write error,fd:%d,real:%d,errno:%u,%s", fd_, realsend, errno, strerror(errno));
                 rc = -1;

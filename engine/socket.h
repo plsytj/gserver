@@ -54,6 +54,7 @@ class socket_t
         void pre_send_cmd();
         bool send_buffer_empty();
 
+        bool block_read();
         bool read_cmd();
         bool writeToBuf(void* data, uint32_t len);
 

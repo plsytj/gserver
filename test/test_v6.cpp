@@ -25,10 +25,10 @@ int thread_fun(int id)
         {
             break;
         }
-        //sock.read_cmd();
+        sock.block_read();
         unsigned char * cmd;
-        /*uint16_t len;
-        if( !sock.get_cmd(cmd, len))
+        uint16_t len;
+        if( sock.get_cmd(cmd, len) )
         {
             sock.pop_cmd();
         }
@@ -36,9 +36,8 @@ int thread_fun(int id)
         {
             break;
         }
-        */
+        
         usleep(100);
-
     }
     sock.close();
     printf("thread %d stop", id);
