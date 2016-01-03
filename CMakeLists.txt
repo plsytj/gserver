@@ -17,7 +17,7 @@ include_directories(
         ${INC_DIR}
 )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(engine)
