@@ -10,12 +10,11 @@ gtw::~gtw()
 }
 bool gtw::init(const char * host, const char* service)
 {
-    if( !ss_.open("::", service, NULL))
+    if( !ss_.open(host, service, NULL))
     {
         fprintf(stderr, "error listen on %s:%s\n", host, service);
         return false;
     }
-    printf("open ok...\n");
     return true;
 }
 
@@ -94,7 +93,8 @@ bool gtw::out_event(socket_t* conn)
     }
     else if (ret > 0)
     {
-        //ss_.poll_write(conn->get_fd(), conn);
+        if(conn->send_buffer_empty())
+            ss_.poll_write(conn->get_fd(), conn, false);
     }
     return true;
 }
@@ -102,5 +102,7 @@ bool gtw::out_event(socket_t* conn)
 void gtw::do_cmd(socket_t * conn, void * data, int len)
 {
     printf("recv client:(%d)%s\n", len, (char*)data);
+    //on send cmd
     conn->send_cmd(data, len);
+    ss_.poll_write(conn->get_fd(), conn, true);
 }

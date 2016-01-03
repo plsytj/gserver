@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, stop_server);
     signal(SIGINT, stop_server);
 
-    server->init("0.0.0.0", argv[1]);
+    server->init("::", argv[1]);
     server->run();
 
     return 0;

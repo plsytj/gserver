@@ -33,7 +33,7 @@ class socket_server
         /* event_poll ctl */
         int event_poll(int timeout,poll_event * e, int max );
         void poll_add(int fd, void* ud);
-        void poll_write(int fd, void* ud);
+        void poll_write(int fd, void* ud, bool enable);
         void poll_del(int fd);
     private:
         int     epoll_fd;

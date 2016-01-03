@@ -52,11 +52,11 @@ class socket_t
         bool send_cmd(const void* data, uint16_t len);
         int send_cmd();
         void pre_send_cmd();
+        bool send_buffer_empty();
 
         bool read_cmd();
         bool writeToBuf(void* data, uint32_t len);
 
-        uint16_t sizeMod8(uint16_t len);
     protected:
         int fd_;
         struct sockaddr addr_;
@@ -72,7 +72,7 @@ class socket_t
         bytebuff read_buf;
         bytebuff cmd_write_buf;
         bytebuff tmp_write_buf;
-        bytebuff _write_buffer;
+        bytebuff send_buf;
 
         bytebuff encBuffer;
 

@@ -45,15 +45,15 @@ bool socket_server::open(const char * host, const char * serv, socklen_t *addrle
 void socket_server::poll_add(int fd, void* ud)
 {
     struct epoll_event ev;
-    ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
+    ev.events = EPOLLIN | EPOLLET;
     ev.data.ptr = ud;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
 }
 
-void socket_server::poll_write(int fd, void* ud)
+void socket_server::poll_write(int fd, void* ud, bool enable)
 {
     struct epoll_event ev;
-    ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
+    ev.events = EPOLLIN | EPOLLET | (enable?EPOLLOUT:0);
     ev.data.ptr = ud;
     epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev);
 }

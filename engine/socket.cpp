@@ -8,7 +8,7 @@
 
 socket_t::socket_t()
 {
-    _write_buffer.Resize(MAX_BUFSIZE * 2);
+    send_buf.Resize(MAX_BUFSIZE * 2);
     read_buf.Resize(MAX_BUFSIZE * 2);
     encBuffer.Resize(MAX_BUFSIZE);
     cmd_write_buf.Resize(MAX_BUFSIZE * 2);
@@ -118,6 +118,12 @@ bool socket_t::read_cmd()
     }
     return rc;
 }
+bool socket_t::send_buffer_empty()
+{
+    if(send_buf.buffer_offset() == 0)
+        return true;
+    return false;
+}
 
 int socket_t::send_cmd()
 {
@@ -125,20 +131,20 @@ int socket_t::send_cmd()
 
     pre_send_cmd();
     int rc = 0;
-    int all = _write_buffer.buffer_offset();
+    int all = send_buf.buffer_offset();
     while (all)
     {
         int realsend = std::min(all, MAX_BUFSIZE * 2);
-        int ret = write(fd_, _write_buffer.GetBufBegin(), realsend);
+        int ret = write(fd_, send_buf.GetBufBegin(), realsend);
         if (ret > 0)
         {
-            _write_buffer.Pop(ret);
-            all = _write_buffer.buffer_offset();
+            send_buf.Pop(ret);
+            all = send_buf.buffer_offset();
             rc = all;
         }
         else if (ret == 0)
         {
-            rc = _write_buffer.buffer_offset();
+            rc = send_buf.buffer_offset();
             fprintf(stderr, "[SOCKET],发送异常,fd:%d,ret:%d,real:%d", fd_, ret, realsend);
             break;
         }
@@ -146,9 +152,9 @@ int socket_t::send_cmd()
         {
             if (errno != EWOULDBLOCK || errno != EAGAIN)
             {
-                fprintf(stderr, "[SOCKET],发送错误,fd:%d,ret:%d,real:%d,errno:%u,%s", fd_, ret, realsend, errno, strerror(errno));
+                fprintf(stderr, "socket write error,fd:%d,real:%d,errno:%u,%s", fd_, realsend, errno, strerror(errno));
                 rc = -1;
-                _write_buffer.Pop(all);
+                send_buf.Pop(all);
             }
             break;
         }
@@ -173,7 +179,7 @@ bool socket_t::writeToBuf(void* data, uint32_t len)
 {
     uint32_t real_size = 0;
 
-    real_size = _write_buffer.Put(data, len);
+    real_size = send_buf.Put(data, len);
 
     return (real_size == len);
 }
@@ -225,23 +231,5 @@ void socket_t::pre_send_cmd()
     }
     while (0);
 
-    while (tmp_write_buf.buffer_offset() > 0)
-    {
-        PacketHead* oldPHead = (PacketHead*)tmp_write_buf.GetBufBegin();
-        encBuffer.Reset();
-        PacketHead ph;
-        encBuffer.Put(&ph, sizeof(PacketHead));
-        encBuffer.Put(tmp_write_buf.GetBufOffset(sizeof(PacketHead)), oldPHead->len);
-        PacketHead* p = (PacketHead*)encBuffer.GetBufBegin();
-
-        uint32_t real_size = oldPHead->len;
-        p->len = real_size;
-        real_size += sizeof(PacketHead);
-
-        if (!writeToBuf(encBuffer.GetBufBegin(), real_size))
-        {
-            fprintf(stderr, "[socket_t],fd:%d,push cmd error",  fd_);
-        }
-        tmp_write_buf.Pop(real_size);
-    }
+    writeToBuf(tmp_write_buf.GetBufBegin(), tmp_write_buf.buffer_offset());
 }
